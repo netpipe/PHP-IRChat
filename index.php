@@ -226,9 +226,11 @@ switch ($action) {
         $userId = getCurrentUserId();
         if (!$userId) respond(['error' => 'Not logged in']);
         
-        $user = getUser($userId);
-        $db->exec("UPDATE users SET last_active = " . time() . " WHERE id = $userId");
+        // Clean up stale/timed-out users on every poll
+        cleanupStaleUsers($db, 60);
         
+        $user = getUser($userId);
+        $db->exec("UPDATE users SET last_active = " . time() . " WHERE id = $userId");        
         $stmt = $db->prepare('SELECT c.id, c.name, c.topic FROM channels c JOIN channel_members cm ON cm.channel_id = c.id WHERE cm.user_id = ? ORDER BY c.name');
         $stmt->bindValue(1, $userId, SQLITE3_INTEGER);
         $result = $stmt->execute();
